@@ -864,6 +864,7 @@ update_state(Rec, State) ->
 handle_query_call_reply([], _Query, State, ResultSetsAcc) ->
     Reply = case ResultSetsAcc of
         []                    -> ok;
+        [{AffectedRows}]      -> {ok, AffectedRows};
         [{ColumnNames, Rows}] -> {ok, ColumnNames, Rows};
         [_|_]                 -> {ok, lists:reverse(ResultSetsAcc)}
     end,
@@ -876,8 +877,9 @@ handle_query_call_reply([Rec|Recs], Query, State, ResultSetsAcc) ->
             %% an implicit commit.
             Reply = {implicit_commit, State#state.transaction_level, Query},
             {reply, Reply, State#state{transaction_level = 0}};
-        #ok{} ->
-            handle_query_call_reply(Recs, Query, State, ResultSetsAcc);
+        #ok{affected_rows = AR} ->
+            ResultSetsAcc1 = [{AR} | ResultSetsAcc],
+            handle_query_call_reply(Recs, Query, State, ResultSetsAcc1);
         #resultset{cols = ColDefs, rows = Rows} ->
             Names = [Def#col.name || Def <- ColDefs],
             ResultSetsAcc1 = [{Names, Rows} | ResultSetsAcc],
