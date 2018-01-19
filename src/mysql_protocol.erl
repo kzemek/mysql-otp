@@ -852,6 +852,9 @@ flooring(Value) ->
 -spec encode_param(term()) -> {TypeAndSign :: binary(), Data :: binary()}.
 encode_param(null) ->
     {<<?TYPE_NULL, 0>>, <<>>};
+encode_param({binary, Value}) when is_binary(Value) ->
+    EncLength = lenenc_int_encode(byte_size(Value)),
+    {<<?TYPE_BLOB, 0>>, <<EncLength/binary, Value/binary>>};
 encode_param(Value) when is_binary(Value) ->
     EncLength = lenenc_int_encode(byte_size(Value)),
     {<<?TYPE_VAR_STRING, 0>>, <<EncLength/binary, Value/binary>>};
